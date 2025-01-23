@@ -2,8 +2,8 @@
 
 
 # CREATOR: Mike Lu (klu7@lenovo.com)
-# CHANGE DATE: 1/20/2025
-__version__="1.0"
+# CHANGE DATE: 1/23/2025
+__version__="1.1"
 
 
 # **Quick setup for Citrix Cert testing**
@@ -18,7 +18,7 @@ if [ "$EUID" -ne 0 ]; then
 else
 	# Check the existence of required files
 	[[ ! -f ./displaymodeselector ]] && echo -e "\n❌ ERROR: NVIDIA display mode selector tool (displaymodeselector) not found in the current directory" && exit
-	chmod +x ./displaymodeselector
+	chmod 755 ./displaymodeselector
 	[[ ! `find ./ -name "NVIDIA*.rpm"` ]] && echo -e "\n❌ ERROR: NVIDIA driver package not found in the current directory" && exit
 	[[ $(ls ./*.rpm | wc -l) > 1 ]] && echo -e "\n❌ ERROR: More than one NVIDIA driver packages found in the current directory! \n" && exit
 
