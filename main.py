@@ -494,9 +494,17 @@ def copy_TC_VM():
 
     SUT_IP = input("Enter the SUT host IP: ")
 
-    # TODO: 解決ssh每次要輸入密碼方式
-    # 先檢查TC機是否存在公鑰(路徑: C:\U\Administrator\.ssh\id_rsa.pub), 假設有就不用再建立, 沒有就要執行ssh-keygen -t rsa
+    # TODO: 可以直接實驗看看!!   解決ssh每次要輸入密碼方式
+    # 先檢查TC機是否存在公鑰(路徑: C:\Users\Administrator\.ssh\id_rsa.pub), 假設有就不用再建立, 沒有就要執行ssh-keygen -t rsa
     # 建立完後,TC機再用CMD執行: type .ssh\id_rsa.pub | ssh root "([ -f ~/.ssh ] || (mkdir -p ~/.ssh && chmod 700 ~/.ssh)) && ([ -f ~/.ssh/authorized_keys ] || (touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys)) && cat >> ~/.ssh/authorized_keys"
+    ssh_pub_key = "C:\\Users\Administrator\\.ssh\\id_rsa.pub"
+    if not os.path.exists(ssh_pub_key):
+        os.system("ssh-keygen -t rsa")
+
+    ssh_key_cmd = f'type {ssh_pub_key} | ssh root@{SUT_IP} "([ -f ~/.ssh ] || (mkdir -p ~/.ssh && chmod 700 ~/.ssh)) && ([ -f ~/.ssh/authorized_keys ] || (touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys)) && cat >> ~/.ssh/authorized_keys"'
+    ssh_key_result = subprocess.run(
+        ssh_key_cmd, shell=True, capture_output=True, text=True
+    )
 
     for i in range(1, VM_count + 1):
         print(f"\nNow copying VM #{i}...\n")
