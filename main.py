@@ -434,36 +434,12 @@ def check_NV_license():
         )
 
 
-# TODO:
-# Copy TC VM
-def copy_TC_VM():
-    print("\nFunction Not Ready  m(_ _)m\n")
-    # 檢查XenCenter是否運行, 有才繼續 沒有則顯示錯誤訊息
-    # check_TC_running = subprocess.run(
-    #     [
-    #         "powershell",
-    #         "-Command",
-    #         "Get-Process -Name XenCenter",
-    #     ],
-    #     capture_output=True,
-    #     text=True,
-    # )
-    # if check_TC_running.returncode != 0:
-    #     print("\n\033[31mError: XenCenter is not running\033[0m\n")
-    # else:
-    #     pass
-    # CMD直接使用xe.exe執行指令  需要輸入IP(預設root/123456)和要copy的VM數量
-    # "C:\Program Files\Citrix\XenCenter\xe.exe" -s <server_ip> -u root -pw 123456 vm-list
-    # "C:\Program Files\Citrix\XenCenter\xe.exe" -s <server_ip> -u root -pw 123456 vm-list params=name-label
-    # "C:\Program Files\Citrix\XenCenter\xe.exe" -s <server_ip> -u root -pw 123456 vm-copy vm=$(xe vm-list name-label="Windows10-1" params=uuid --minimal) new-name-label="Windows10-1-Copy"
-
-
 # Trigger BSOD on SUT VM
 def trigger_VM_BSOD():
     """
     Command to trigger SUT VM BSOD on SUT shell:
 
-    uuid=$(xe vm-list name-label='Windows10-1' params=uuid | awk -F ': ' '{print $2}' | head -1)
+    uuid=$(xe vm-list name-label='Windows 10-1' params=uuid | awk -F ': ' '{print $2}' | head -1)
     domain=$(list_domains | grep $uuid | awk '{print $1}')
     /usr/sbin/xen-hvmcrash $domain
     """
@@ -483,6 +459,53 @@ def trigger_VM_BSOD():
     else:
         print(f"\n{Fore.RED}Command failed.{Style.RESET_ALL}")
         print(f"\n{Fore.RED}Error: {result.stderr}{Style.RESET_ALL}")
+
+
+# Copy TC VM
+def copy_TC_VM():
+    """
+    Command to copy VM on SUT shell:
+
+    uuid=$(xe vm-list name-label='Windows 10-1' params=uuid | awk -F ': ' '{print $2}' | head -1)
+
+    """
+    # 底下指令已確認可成功運行
+    # ssh root@192.168.x.x "xe vm-copy vm=$(xe vm-list name-label='Windows 10-1' params=uuid | awk -F ': ' '{{print $2}}' | head -1) new-name-label='test'"
+    while True:
+        answer = input(
+            f"{Fore.YELLOW}<Attention> Before copying VM, you need to shut down the base VM first. Ready? (y/n){Style.RESET_ALL} "
+        )
+        if answer.lower() == "y":
+            break
+        elif answer.lower() == "n":
+            sys.exit()
+        else:
+            continue
+    print("\n")
+
+    while True:
+        try:
+            VM_count = int(input("Enter the number of VMs you want to copy: "))
+            if VM_count < 1:
+                continue
+            break
+        except ValueError:
+            continue
+
+    SUT_IP = input("Enter the SUT host IP: ")
+    for i in range(1, VM_count + 1):
+        print(f"\nNow copying VM #{i}...\n")
+        ssh_cmd = [
+            "ssh",
+            f"root@{SUT_IP}",
+            f"xe vm-copy vm=$(xe vm-list name-label='Windows 10-1' params=uuid | awk -F ': ' '{{print $2}}' | head -1) new-name-label='Windows 10-1 (Copy #{i})'",
+        ]
+        result = subprocess.run(ssh_cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"\n{Fore.GREEN}Copy VM #{i} successfully!{Style.RESET_ALL}\n")
+        else:
+            print(f"\n{Fore.RED}Copy #VM {i} failed.{Style.RESET_ALL}")
+            print(f"\n{Fore.RED}Error: {result.stderr}{Style.RESET_ALL}")
 
 
 while True:
@@ -514,6 +537,7 @@ while True:
         trigger_VM_BSOD()
         continue
     elif answer == "9":
+        copy_TC_VM()
         continue
     elif answer.lower() == "q":
         sys.exit()
