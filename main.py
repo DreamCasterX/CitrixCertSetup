@@ -7,10 +7,11 @@ import ctypes
 import shutil
 from win32 import win32gui
 from win32com import client
-
-# import win32.lib.win32con as win32con
-
+from colorama import init, Fore, Style
 from PIL import ImageGrab
+
+# Initialize colorama
+init(autoreset=True)
 
 
 # Force users to run the tool as administrator
@@ -59,7 +60,7 @@ def warning_before(func):
     def inner(*args, **kwargs):
         while True:
             answer = input(
-                "<Attention> Do not interact with desktop from now on. Ready? (y/n) "
+                f"{Fore.YELLOW}<Attention> Do not interact with desktop from now on. Ready? (y/n){Style.RESET_ALL} "
             )
             if answer.lower() == "y":
                 break
@@ -146,7 +147,9 @@ def get_DM_DX_screenshots():
     try:
         screenshot = ImageGrab.grab()
         screenshot.save(os.path.join(log_dir, "device.png"))
-        print("\n\033[32mdevice.png saved to Desktop\\Citrix_LOGS\033[0m\n")
+        print(
+            f"\n{Fore.GREEN}device.png saved to Desktop\\Citrix_LOGS{Style.RESET_ALL}\n"
+        )
 
         # Close Device Manager and DXDiag
         subprocess.run(
@@ -162,7 +165,7 @@ def get_DM_DX_screenshots():
         shell.UndoMinimizeAll()
 
     except Exception as e:
-        print(f"\n\033[31mError: Failed to save device.png: {e}\033[0m\n")
+        print(f"{Fore.RED}Error: Failed to save device.png: {e}{Style.RESET_ALL}\n")
         shell.UndoMinimizeAll()
 
 
@@ -210,7 +213,7 @@ def get_DM_screenshot():
         screenshot = ImageGrab.grab()
         screenshot.save(os.path.join(log_dir, "Windows_crashdump-2.png"))
         print(
-            "\n\033[32mWindows_crashdump-2.png saved to Desktop\\Citrix_LOGS\033[0m\n"
+            f"\n{Fore.GREEN}Windows_crashdump-2.png saved to Desktop\\Citrix_LOGS{Style.RESET_ALL}\n"
         )
         # Close Device Manager
         subprocess.run(
@@ -226,7 +229,9 @@ def get_DM_screenshot():
         shell.UndoMinimizeAll()
 
     except Exception as e:
-        print(f"\n\033[31mError: Failed to save Windows_crashdump-2.png: {e}\033[0m\n")
+        print(
+            f"\n{Fore.RED}Error: Failed to save Windows_crashdump-2.png: {e}{Style.RESET_ALL}\n"
+        )
         shell.UndoMinimizeAll()
 
 
@@ -237,9 +242,11 @@ def get_WinSAT_1():
     os.system("winsat formal -xml C:\\wsformal-1.xml")
     try:
         shutil.move("C:\\wsformal-1.xml", log_dir)
-        print("\n\033[32mwsformal-1.xml saved to Desktop\\Citrix_LOGS\033[0m\n")
+        print(
+            f"\n{Fore.GREEN}wsformal-1.xml saved to Desktop\\Citrix_LOGS{Style.RESET_ALL}\n"
+        )
     except FileNotFoundError:
-        print("\n\033[31mError: wsformal-1.xml file not found\033[0m\n")
+        print(f"\n{Fore.RED}Error: wsformal-1.xml file not found{Style.RESET_ALL}\n")
 
 
 # Restart the system and run WinSAT
@@ -258,9 +265,11 @@ def get_WinSAT_2():
     os.system("winsat formal -xml C:\\wsformal-2.xml")
     try:
         shutil.move("C:\\wsformal-2.xml", log_dir)
-        print("\n\033[32mwsformal-2.xml saved to Desktop\\Citrix_LOGS\033[0m\n")
+        print(
+            f"\n{Fore.GREEN}wsformal-2.xml saved to Desktop\\Citrix_LOGS{Style.RESET_ALL}\n"
+        )
     except FileNotFoundError:
-        print("\n\033[31mError: wsformal-2.xml file not found\033[0m\n")
+        print(f"\n{Fore.RED}Error: wsformal-2.xml file not found{Style.RESET_ALL}\n")
 
 
 # Remove non-NVIDIA GPU drivers
@@ -289,41 +298,80 @@ def remove_nonNV_devices():
         }
         """
         subprocess.run(["powershell", "-Command", list_cmd], check=True)
-        print("\n\033[32mDone!\033[0m\n")
+        print(
+            f"\n{Fore.GREEN}Non-NVIDIA display adapters uninstalled!{Style.RESET_ALL}\n"
+        )
     except subprocess.CalledProcessError as e:
-        print(f"\n\033[31mExecution error: {e}\033[0m\n")
+        print(f"\n{Fore.RED}Execution error: {e}{Style.RESET_ALL}\n")
         raise
     except Exception as e:
-        print(f"\n\033[31mUnexpetecd error: {e}\033[0m\n")
+        print(f"\n{Fore.RED}Unexpetecd error: {e}{Style.RESET_ALL}\n")
         raise
 
 
 # Set Crashdump registry and disable auto-restart
 def set_crashdump():
-    # Set Crashdump registry
-    subprocess.run(
+    restart_needed = False
+
+    # Check current CrashDumpEnabled registry value
+    result = subprocess.run(
         [
             "reg",
-            "add",
+            "query",
             r"HKLM\SYSTEM\CurrentControlSet\Control\CrashControl",
             "/v",
             "CrashDumpEnabled",
-            "/t",
-            "REG_DWORD",
-            "/d",
-            "1",
-            "/f",
         ],
+        capture_output=True,
+        text=True,
         check=True,
-        stdout=subprocess.DEVNULL,
     )
-    # Disable auto-restart
+
+    # Determine if registry needs to be set
+    if "0x1" not in result.stdout:
+        subprocess.run(
+            [
+                "reg",
+                "add",
+                r"HKLM\SYSTEM\CurrentControlSet\Control\CrashControl",
+                "/v",
+                "CrashDumpEnabled",
+                "/t",
+                "REG_DWORD",
+                "/d",
+                "1",
+                "/f",
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+        restart_needed = True
+
+    # Disable auto-restart in all cases
     subprocess.run(
         ["wmic", "recoveros", "set", "AutoReboot", "=", "False"],
         check=True,
         stdout=subprocess.DEVNULL,
     )
-    print("\n\033[32mRegistry and reboot policy set!\033[0m\n")
+
+    # Prompt for restart only if registry was changed
+    if restart_needed:
+        while True:
+            answer = input(
+                "Default registry changed to 1. Restart the system to take effect now? (y/n) "
+            )
+            if answer.lower() == "y":
+                os.system("shutdown /r /t 1")
+                break
+            elif answer.lower() == "n":
+                print("\n")
+                break
+            else:
+                continue
+    else:
+        print(
+            f"\n{Fore.GREEN}Crashdump registry and reboot policy set!{Style.RESET_ALL}\n"
+        )
 
 
 # Check license status and move license file
@@ -349,7 +397,7 @@ def check_NV_license():
                     if license_file:
                         shutil.move(license_file[0], license_path)
                         print(
-                            "\n\033[32mLicense file (.tok) moved successfully\033[0m\n"
+                            f"\n{Fore.GREEN}License file (.tok) moved successfully{Style.RESET_ALL}\n"
                         )
                         while True:
                             restart = input(
@@ -366,7 +414,7 @@ def check_NV_license():
                         break
                     else:
                         print(
-                            "\n\033[31mError: License file (.tok) not found in the current directory. Please check\033[0m\n"
+                            f"\n{Fore.RED}Error: License file (.tok) not found in the current directory. Please check{Style.RESET_ALL}\n"
                         )
                         break
                 elif answer.lower() == "n":
@@ -377,18 +425,69 @@ def check_NV_license():
                         "vGPU software is not licensed. Do you want to activate the license now? (y/n) "
                     )
         elif license_status.stdout.strip().split()[0] == "Licensed":
-            print("\n\033[32mvGPU software is licensed!\033[0m\n")
+            print(f"\n{Fore.GREEN}vGPU software is licensed!{Style.RESET_ALL}\n")
         else:
-            print("\n\033[31mError: License status is unknown\033[0m\n")
+            print(f"\n{Fore.RED}Error: License status is unknown{Style.RESET_ALL}\n")
     except:
         print(
-            "\n\033[31mError: Failed to check license status by nvidia-smi tool\033[0m\n"
+            f"\n{Fore.RED}Error: Failed to check license status by nvidia-smi tool{Style.RESET_ALL}\n"
         )
+
+
+# TODO:
+# Copy TC VM
+def copy_TC_VM():
+    print("\nFunction Not Ready  m(_ _)m\n")
+    # 檢查XenCenter是否運行, 有才繼續 沒有則顯示錯誤訊息
+    # check_TC_running = subprocess.run(
+    #     [
+    #         "powershell",
+    #         "-Command",
+    #         "Get-Process -Name XenCenter",
+    #     ],
+    #     capture_output=True,
+    #     text=True,
+    # )
+    # if check_TC_running.returncode != 0:
+    #     print("\n\033[31mError: XenCenter is not running\033[0m\n")
+    # else:
+    #     pass
+    # CMD直接使用xe.exe執行指令  需要輸入IP(預設root/123456)和要copy的VM數量
+    # "C:\Program Files\Citrix\XenCenter\xe.exe" -s <server_ip> -u root -pw 123456 vm-list
+    # "C:\Program Files\Citrix\XenCenter\xe.exe" -s <server_ip> -u root -pw 123456 vm-list params=name-label
+    # "C:\Program Files\Citrix\XenCenter\xe.exe" -s <server_ip> -u root -pw 123456 vm-copy vm=$(xe vm-list name-label="Windows10-1" params=uuid --minimal) new-name-label="Windows10-1-Copy"
+
+
+# Trigger BSOD on SUT VM
+def trigger_VM_BSOD():
+    """
+    Command to trigger SUT VM BSOD on SUT shell:
+
+    uuid=$(xe vm-list name-label='Windows10-1' params=uuid | awk -F ': ' '{print $2}' | head -1)
+    domain=$(list_domains | grep $uuid | awk '{print $1}')
+    /usr/sbin/xen-hvmcrash $domain
+    """
+    # 底下指令已確認可成功運行
+    # ssh root@192.168.x.x "/usr/sbin/xen-hvmcrash `list_domains | grep $(xe vm-list name-label='Windows10-1' params=uuid | awk -F ': ' '{print $2}' | head -1) | awk '{print $1}')'`"
+    SUT_IP = input("Enter the SUT host IP: ")
+    ssh_cmd = [
+        "ssh",
+        f"root@{SUT_IP}",
+        f"/usr/sbin/xen-hvmcrash `list_domains | grep $(xe vm-list name-label='Windows 10-1' params=uuid | awk -F ': ' '{{print $2}}' | head -1) | awk '{{print $1}}'`",
+    ]
+    result = subprocess.run(ssh_cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        print(
+            f"\n{Fore.GREEN}Crash command sent to SUT VM successfully!{Style.RESET_ALL}\n"
+        )
+    else:
+        print(f"\n{Fore.RED}Command failed.{Style.RESET_ALL}")
+        print(f"\n{Fore.RED}Error: {result.stderr}{Style.RESET_ALL}")
 
 
 while True:
     answer = input(
-        "  (1) Collect Device Manager & Dxdiag screenshot\n  (2) Collect Device Manager screenshot\n  (3) Collect 1st WinSAT log\n  (4) Collect 2nd WinSAT log (reboot required)\n  (5) Verify and activate vGPU license\n  (6) Uninstall non-NVIDIA GPU devices\n  (7) Set crashdump registry and disable auto-restart\n  (8) Exit\n\nSelect an action: "
+        " SUT:\n  (1) Collect Device Manager & Dxdiag screenshot\n  (2) Collect Device Manager screenshot\n  (3) Collect 1st WinSAT log\n  (4) Collect 2nd WinSAT log (reboot required)\n  (5) Verify and activate vGPU license\n  (6) Uninstall non-NVIDIA GPU devices\n  (7) Set crashdump registry and disable auto-restart\n TC:\n  (8) Trigger BSOD on SUT VM\n  (9) Copy VM\n  (Q) Quit\n\nSelect an action: "
     )
     if answer == "1":
         get_DM_DX_screenshots()
@@ -412,6 +511,11 @@ while True:
         set_crashdump()
         continue
     elif answer == "8":
+        trigger_VM_BSOD()
+        continue
+    elif answer == "9":
+        continue
+    elif answer.lower() == "q":
         sys.exit()
     else:
         continue
