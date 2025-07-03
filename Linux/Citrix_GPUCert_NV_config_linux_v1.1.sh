@@ -10,7 +10,7 @@ __version__="1.1"
 # GPUs that support multiple display mode are: A40/L40/L40S/5000 Ada/6000 Ada/A5000/A5500/A6000
 
 # [Note]
-# Copy 'displaymodeselector' and 'NVIDIA vGPU driver' to the same path as this script
+# Copy 'displaymodeselector' and 'NVIDIA vGPU driver (.rpm)' to the same path as this script
 
 # ====================================================================
 
@@ -55,7 +55,7 @@ fi
 # Install NV vGPU driver
 echo
 echo "╭───────────────────────────────────────╮"
-echo "│     Installing NVIDAI vGPU driver     │"
+echo "│     Installing NVIDIA vGPU driver     │"
 echo "│                                       │"
 echo "╰───────────────────────────────────────╯"
 echo
